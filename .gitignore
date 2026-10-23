@@ -1,0 +1,13 @@
+# 依赖
+node_modules/
+
+# 凭据 —— 绝对不能提交
+bridge/config.json
+bridge/auth/
+
+# NapCat 运行时数据（QQ 登录态、缓存）
+napcat/
+
+# 日志
+*.log
+npm-debug.log*

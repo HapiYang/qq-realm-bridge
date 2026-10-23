@@ -1,0 +1,34 @@
+{
+  "realm": {
+    "invite": "",
+    "pickRealm": "你的Realm名字",
+    "serverLabel": "服务器名"
+  },
+  "bot": {
+    "username": "机器人名字Bot",
+    "profilesFolder": "./auth",
+    "authTitle": ""
+  },
+  "qq": {
+    "ws": "ws://127.0.0.1:3002",
+    "accessToken": "",
+    "group": 0,
+    "maxLength": 180
+  },
+  "switch": {
+    "mc_to_qq": true,
+    "qq_to_mc": true,
+    "qqSelfId": 0
+  },
+  "filter": {
+    "blockPrefixes": [
+      "/",
+      "#",
+      "!"
+    ],
+    "blockWords": [
+      "http://",
+      "https://"
+    ]
+  }
+}

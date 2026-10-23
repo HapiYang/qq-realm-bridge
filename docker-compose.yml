@@ -1,0 +1,15 @@
+services:
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat
+    restart: unless-stopped
+    environment:
+      - NAPCAT_UID=1000
+      - NAPCAT_GID=1000
+    ports:
+      - "127.0.0.1:3010:3000"   # HTTP API
+      - "127.0.0.1:3002:3001"   # 反向 WS（桥接连这个；3001 已被 AutoStudy 占用）
+      - "127.0.0.1:6099:6099"   # WebUI，扫码登录
+    volumes:
+      - ./napcat/config:/app/napcat/config
+      - ./napcat/qq:/app/.config/QQ
