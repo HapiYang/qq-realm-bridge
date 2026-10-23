@@ -16,6 +16,13 @@ const cfg = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8'));
 
 const log = (...a) => console.log(new Date().toLocaleTimeString('zh-CN'), ...a);
 
+// 判断是不是机器人自己。cfg.bot.username 是"请求用的名字"，
+// 但 Realms 里显示的是微软账号的 Xbox 名（bot.gamertag），两个都要认。
+function isSelf(name) {
+  if (!name) return false;
+  return name === cfg.bot.username || (!!cfg.bot.gamertag && name === cfg.bot.gamertag);
+}
+
 // —— 回声抑制：自己注入游戏的消息会以 chat 包回来，不能再转给 QQ ——
 const injected = [];
 function markInjected(text) {
@@ -194,7 +201,7 @@ function connectMC() {
     const name = clean(packet.source_name);
     const msg = clean(packet.message);
     if (!msg) return;
-    if (name === cfg.bot.username) return;
+    if (isSelf(name)) return;                     // 自己说的不往回转
     if (wasInjected(msg)) return;                // 自己刚灌进去的，不回声
     toQQ(`[${cfg.realm.serverLabel}] <${name}> ${msg}`);
     log('[MC->QQ]', name, ':', msg);
@@ -208,7 +215,7 @@ function connectMC() {
 
     for (const r of recs) {
       if (r.type === 'add') {
-        if (r.username === cfg.bot.username) { selfUuid = r.uuid; continue; }
+        if (isSelf(r.username)) { selfUuid = r.uuid; continue; }   // 自己不列入在线名单
         const known = online.has(r.uuid);
         const name = clean(r.username);
         online.set(r.uuid, { name, xuid: clean(r.xbox_user_id) });
@@ -236,9 +243,10 @@ function connectMC() {
   mc.on('kick', p => log('[MC] 被踢:', p?.message));
   mc.on('error', e => log('[MC] 错误:', e.message));
   mc.on('close', () => {
-    if (!mcReady) return;
+    // 以前这里 if(!mcReady) return，导致"没进服就断开"（登录失败、503、被封）
+    // 之后永远不再重试，桥接就静默卡死了。进没进过服都要重连。
+    log(mcReady ? '[MC] 连接断开，重新连' : '[MC] 未进服就断开，重新连');
     mcReady = false;
-    log('[MC] 连接断开，重新连');
     setTimeout(connectMC, mcRetry);
     mcRetry = Math.min(mcRetry * 2, 60000);
   });
@@ -252,7 +260,10 @@ function pushToMC(line) {
   lastPush = Date.now();
   markInjected(line);
   try {
-    // 1.26 协议新增 category 与 has_filtered_message，少一个服务器会踢
+    // 1.26 协议新增 category 与 has_filtered_message，少一个服务器会踢。
+    // has_filtered_message 必须 false + filtered_message 空串：
+    // 实测设 true 会被服务端判定非法包直接踢（且踢人提示为空）。
+    // 中文被客户端打成 #### 是 Realm 的文本过滤导致的，见下面说明。
     mc.queue('text', {
       needs_translation: false,
       category: 'authored',

@@ -7,7 +7,8 @@
   "bot": {
     "username": "机器人名字Bot",
     "profilesFolder": "./auth",
-    "authTitle": ""
+    "authTitle": "",
+    "gamertag": ""
   },
   "qq": {
     "ws": "ws://127.0.0.1:3002",

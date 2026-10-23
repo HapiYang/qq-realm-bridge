@@ -53,6 +53,16 @@ $EDITOR bridge/config.json      # 填 qq.group 和 realm.invite
 `realm.invite` 是 Realm 设置里的邀请链接 `https://realms.gg/xxxxxxxx`。
 多个 Realm 时配合 `realm.pickRealm` 按名字挑。
 
+`bot.gamertag` 也要填：Realms 里显示的是微软账号的 **Xbox 名**，不是
+`bot.username` 那个"请求用的名字"。不填的话机器人会把自己算进在线名单，
+自己说的话也可能被当成玩家消息转回群里。填法：
+
+```json
+"bot": { "username": "皮皮欢乐多Bot", "gamertag": "你的Xbox名", ... }
+```
+
+进游戏后看屏幕提示 / 或在群里发一次「在线」，对一下名单里有没有机器人自己。
+
 ```bash
 # 3. 起 NapCat 并扫码
 docker compose up -d
@@ -141,6 +151,26 @@ cd bridge && npm i bedrock-protocol@latest --ignore-scripts
 ```
 
 `--ignore-scripts` 别漏，否则会尝试编译 raknet-native。
+
+**8. 进服前失败不会重连（已修）**
+
+`mc.on('close')` 里原来有 `if (!mcReady) return;` —— 只在"进过游戏后断线"才重试。
+如果登录阶段就失败（Realms 返回 503、账号被封、握手被拒），桥接会**永久卡死**，
+日志停在一条错误上再也不动。现在进没进过服都会按退避重连。
+
+**9. 中文在游戏里显示成 ####**
+
+`text` 包的 `type` 只有 `chat` 会被 Realm 转发，但 `chat` 属于"玩家发言"，
+会走平台的文本过滤，中文/@数字常被整段替换成 `#`。两条看起来可行的路实测都不行：
+
+| 尝试 | 结果 |
+| --- | --- |
+| `type: 'raw'` | 服务端**不转发**，游戏里什么都看不到 |
+| `has_filtered_message: true` + `filtered_message` 填正文 | 服务端判非法包，**静默踢人**（踢人提示为空） |
+| `has_filtered_message: false` + `filtered_message: ''` | 能发，但中文被打成 `####` |
+
+所以要解决只能从过滤源头下手：关掉世界的「文本过滤」，或检查机器人那个微软账号
+是不是未成年账号（未成年人账号会被强制过滤）。协议层没有别的招。
 
 ## 目录
 
